@@ -12,8 +12,8 @@ Assignment: 2 # do not modify
 Installation: 0m # normally covered under Assignment 1; fill in otherwise
 Reading: 5h
 Lectures: 4h
-Exploration: 20m
-Warmup: 1h
+Exploration: 30m
+Warmup: 3h
 Development: 1h
 Tests: 1h
 Report: 1h
