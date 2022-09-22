@@ -13,8 +13,12 @@ newtype RWSP a = RWSP {runRWSP :: ReadData -> StateData ->
 
 -- complete the definitions
 instance Monad RWSP where
-  return a = undefined
-  m >>= f = undefined
+  return a = RWSP (\r s -> (a, mempty, s))   --extracts tuple --updates state
+  m >>= f  = RWSP (\r s -> let (a, w0, s0) = runRWSP m r s 
+                               (b, w1, s1) = runRWSP (f a) r s0                  
+                           in (b, w0 <> w1, s1))
+  --(>>=) :: RWSP a -> (a -> RWSP b) -> RWSP b
+  --let (a, w0, s0) = runRWSP m r s in runRWSP (f a) r s1
 
 -- No need to touch these
 instance Functor RWSP where
@@ -28,19 +32,19 @@ askP = RWSP (\r s -> (r, mempty, s))  -- freebie
 
 -- runs computation with new read data
 withP :: ReadData -> RWSP a -> RWSP a
-withP r' m = undefined
+withP r' m = RWSP (\r s -> let (a, w0, s0) = runRWSP m r' s in (a, w0, s0))
 
 -- adds some write data to accumulator
 tellP :: WriteData -> RWSP ()
-tellP w = undefined
+tellP w = RWSP (\r s -> ((), w, s))
 
 -- returns current state data
 getP :: RWSP StateData
-getP = undefined
+getP = RWSP (\r s -> (s, mempty, s))
 
 -- overwrites the state data
 putP :: StateData -> RWSP ()
-putP s' = undefined
+putP s' = RWSP (\r s -> ((), mempty, s'))
 
 -- sample computation using all features
 type Answer = String
@@ -52,14 +56,17 @@ sampleP =
      s1 <- getP
      putP (s1 + 1.0)
      tellP "world!"
-     return $ "r1 = " ++ show r1 ++ ", r2 = " ++ show r2 ++ ", s1 = " ++ show s1
+     return $ "r1 = " ++ show r1 ++ ", r2 = " ++ show r2 ++ ", s1 = "  ++ show s1
 
 type Result = (Answer, WriteData, StateData)
 
 expected :: Result
 expected = ("r1 = 4, r2 = 5, s1 = 3.5", "Hello, world!", 4.5)
 
-testP = runRWSP sampleP 4 3.5 == expected
+testP = runRWSP sampleP 4 3.5  == expected
+
+
+
 
 -- Version of RWS monad with errors
 type ErrorData = String
@@ -164,4 +171,4 @@ testP' = runRWSP sample 4 3.5 == expected
 testE' = runRWSE sample 4 3.5 == Right expected
 testE2' = runRWSE sample2 4 3.5 == Left "oops"
 
-allTests = [testP, testE, testE2, testP', testE', testE2']
+--allTests = [testP, testE, testE2, testP', testE', testE2']
