@@ -116,10 +116,10 @@ eval (Oper o e1 e2) = do
     (Right v) -> return v
 eval (Not e) = do v <- eval e; if truthy v then return FalseVal else return TrueVal
 
-
--- eval (Call f x) = do
---   (ListVal xs) <- eval x;
---   apply f xs
+eval (Call f x) = do
+  xs <- eval (List x);
+  apply f (extract xs) where
+    extract (ListVal x) = x 
 
 --this is a bit slow bc of the reverse at the end
 --the issue was that i couldnt figure out how to do (x:v) instead of (v:x)
