@@ -106,7 +106,28 @@ toString (ListVal xs) = " [" ++ tail (tail $ foldl (++) "" (map (","++) (map toS
 
 -- Main functions of interpreter
 eval :: Exp -> Comp Value
-eval = undefined
+eval (Const v) = return v
+eval (Var v)   = look v
+eval (Oper o e1 e2) = do 
+  v1 <- eval e1; 
+  v2 <- eval e2; 
+  case operate o v1 v2 of
+    (Left e)  -> abort (EBadArg e)
+    (Right v) -> return v
+eval (Not e) = do v <- eval e; if truthy v then return FalseVal else return TrueVal
+-- eval (Call f []) = undefined
+-- eval (Call f (e:es)) = undefined
+-- eval (List []) = return $ ListVal (mappend [NoneVal] [NoneVal])
+-- eval (List (e:es)) = evalListAcc (e:es) (ListVal []) where
+--   evalListAcc [] (ListVal x) = return (ListVal x)
+--   evalListAcc (e:es) (ListVal x) = do
+--     v <- eval e;
+--     evalListAcc es (ListVal (mappend [v] x))
+--   evalListAcc _ _ = undefined
+-- eval (Compr e0 []) = undefined
+-- eval (Compr e0 (cc:ccs)) = undefined
+eval _ = undefined
+ 
 
 exec :: Program -> Comp ()
 exec = undefined
