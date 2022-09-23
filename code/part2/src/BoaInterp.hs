@@ -78,8 +78,18 @@ operate In       v1 (ListVal (v:vs))          = case operate Eq v1 v of
   (Right x) -> if x == TrueVal then Right TrueVal else operate In v1 (ListVal vs)
 operate o v1 v2 = Left $ "Operator " ++ show o ++ " is applied to inappropriate arguments " ++ show v1 ++ ", " ++ show v2
 
-apply :: FName -> [Value] -> Comp Value
-apply = undefined
+--NOTE: COULD BE WAY CLEANER
+apply :: FName -> [Value] -> Comp Value --EBadArg
+apply "range" [n2] = apply "range" [IntVal 0, n2, IntVal 1]
+apply "range" [n1, n2] = apply "range" [n1, n2, IntVal 1]
+apply "range" [IntVal n1, IntVal n2, IntVal n3]
+  | n3 == 0 = Comp (\_ -> (Left (EBadArg $ show n3), mempty))
+  | n3 > 0  = if n1 >= n2 then Comp (\_ -> (Right $ ListVal [], mempty)) else 
+    Comp (\_ -> (Right $ ListVal $ map IntVal (takeWhile (< n2) (iterate (+ n3) n1)), mempty))
+  | n3 < 0  = if n1 <= n2 then Comp (\_ -> (Right $ ListVal [], mempty)) else 
+    Comp (\_ -> (Right $ ListVal $ map IntVal (takeWhile (> n2) (iterate (+ n3) n1)), mempty))
+apply "range" x = Comp (\_ -> (Left $ EBadArg (show x), mempty))
+apply x _ = Comp (\_ -> (Left (EBadFun x), mempty))
 --apply f (v:vs) = let x = NoneVal in Comp (\env -> (Right x, mempty))
 
 -- Main functions of interpreter
