@@ -91,7 +91,7 @@ apply "range" [IntVal n1, IntVal n2, IntVal n3]
 apply "range" x = Comp (\_ -> (Left $ EBadArg (show x), mempty))
 
 apply "print" x = Comp (\_ -> (Right NoneVal, out)) where
-  out = if x /= [] then [tail $ foldl (++) "" (map toString x)] else [""]
+  out = if x /= [] then [tail $ concatMap toString x] else [""]
 
 apply x _ = Comp (\_ -> (Left (EBadFun x), mempty))
 
@@ -102,7 +102,7 @@ toString FalseVal = " False"
 toString (IntVal n) = " " ++ show n
 toString (StringVal s) = " " ++ s
 toString (ListVal []) = " []"
-toString (ListVal xs) = " [" ++ tail (tail $ foldl (++) "" (map (","++) (map toString xs))) ++ "]"
+toString (ListVal xs) = " [" ++ tail (tail $ concatMap (("," ++) . toString) xs) ++ "]"
 
 -- Main functions of interpreter
 eval :: Exp -> Comp Value
@@ -115,18 +115,27 @@ eval (Oper o e1 e2) = do
     (Left e)  -> abort (EBadArg e)
     (Right v) -> return v
 eval (Not e) = do v <- eval e; if truthy v then return FalseVal else return TrueVal
--- eval (Call f []) = undefined
--- eval (Call f (e:es)) = undefined
--- eval (List []) = return $ ListVal (mappend [NoneVal] [NoneVal])
--- eval (List (e:es)) = evalListAcc (e:es) (ListVal []) where
---   evalListAcc [] (ListVal x) = return (ListVal x)
---   evalListAcc (e:es) (ListVal x) = do
---     v <- eval e;
---     evalListAcc es (ListVal (mappend [v] x))
---   evalListAcc _ _ = undefined
--- eval (Compr e0 []) = undefined
--- eval (Compr e0 (cc:ccs)) = undefined
-eval _ = undefined
+
+
+-- eval (Call f x) = do
+--   (ListVal xs) <- eval x;
+--   apply f xs
+
+--this is a bit slow bc of the reverse at the end
+--the issue was that i couldnt figure out how to do (x:v) instead of (v:x)
+--since you cant do []:x for example.
+eval (List []) = return $ ListVal []
+eval (List (e:es)) = evalListAcc (e:es) (ListVal []) where
+  evalListAcc [] (ListVal x) = return (ListVal (reverse x))
+  evalListAcc (e:es) (ListVal x) = do
+    v <- eval e;
+    evalListAcc es (ListVal (v:x))
+  evalListAcc _ _ = return NoneVal
+
+
+eval (Compr e0 []) = return TrueVal
+eval (Compr e0 (cc:ccs)) = return TrueVal
+eval _ = return NoneVal
  
 
 exec :: Program -> Comp ()
