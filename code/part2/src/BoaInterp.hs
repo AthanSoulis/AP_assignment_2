@@ -147,13 +147,20 @@ eval (Compr e0 ccs) = case head ccs of
     e <- eval exp; 
     case e of 
       (ListVal []) -> return $ ListVal []
-      (ListVal (y:y1:_)) -> do 
-        v1 <- withBinding x y (eval e0)
-        v2 <- withBinding x y1 (eval e0)
-        return $ ListVal (v1:[v2])
+      (ListVal (y:ys)) -> acc (y:ys) (ListVal []) where 
+        acc [] (ListVal z) = return (ListVal (reverse z))
+        acc (y:ys) (ListVal z) = do
+          v <- withBinding x y (eval e0);
+          acc ys (ListVal (v:z))
+        acc _ _ = return NoneVal
+
+      _ -> abort (EBadArg "Expression does not evaluate to a list") -- Say where
+
+        -- v1 <- withBinding x y (eval e0)
+        -- v2 <- withBinding x y1 (eval e0)
+        -- return $ ListVal (v1:[v2])
 
         --(withBinding x y1 (withBinding x y (eval e0)))  --(eval exp)
-      _ -> abort (EBadArg "Expression does not evalate to a list") -- Say where
 
         -- withBinding :: VName -> Value -> Comp a -> Comp a
         -- withBinding x v m = Comp (\env -> case runComp m ((x, v):env) of
