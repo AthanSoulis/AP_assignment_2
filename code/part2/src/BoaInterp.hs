@@ -83,17 +83,22 @@ apply :: FName -> [Value] -> Comp Value
 apply "range" [n2] = apply "range" [IntVal 0, n2, IntVal 1]
 apply "range" [n1, n2] = apply "range" [n1, n2, IntVal 1]
 apply "range" [IntVal n1, IntVal n2, IntVal n3]
-  | n3 == 0 = Comp (\_ -> (Left (EBadArg $ show n3), mempty))
-  | n3 > 0  = if n1 >= n2 then Comp (\_ -> (Right $ ListVal [], mempty)) else 
-    Comp (\_ -> (Right $ ListVal $ map IntVal (takeWhile (< n2) (iterate (+ n3) n1)), mempty))
-  | n3 < 0  = if n1 <= n2 then Comp (\_ -> (Right $ ListVal [], mempty)) else 
-    Comp (\_ -> (Right $ ListVal $ map IntVal (takeWhile (> n2) (iterate (+ n3) n1)), mempty))
-apply "range" x = Comp (\_ -> (Left $ EBadArg (show x), mempty))
+  | n3 == 0 = abort $ EBadArg (show n3)
+  | n3 > 0  = if n1 >= n2 then return $ ListVal [] else 
+    return $ ListVal $ map IntVal (takeWhile (< n2) (iterate (+ n3) n1))
+  | n3 < 0  = if n1 <= n2 then return $ ListVal [] else 
+    return $ ListVal $ map IntVal (takeWhile (> n2) (iterate (+ n3) n1))
+apply "range" x = abort $ EBadArg (show x)
+
+-- doesnt work bc output results in comp () and we want comp value
+-- apply "print" x = output out where
+--   out = if x /= [] then tail $ concatMap toString x else ""
 
 apply "print" x = Comp (\_ -> (Right NoneVal, out)) where
   out = if x /= [] then [tail $ concatMap toString x] else [""]
 
-apply x _ = Comp (\_ -> (Left (EBadFun x), mempty))
+apply x _ = abort (EBadFun x)
+
 
 toString :: Value -> String
 toString NoneVal = " None"
@@ -140,7 +145,13 @@ eval (Compr e0 ccs) = case head ccs of
   CCFor x exp -> do
     e <- eval exp; 
     case e of 
-      (ListVal xs) -> withBinding x (head xs) (return NoneVal)
+      (ListVal []) -> return $ ListVal []
+      (ListVal (y:y1:_)) -> do 
+        v1 <- withBinding x y (eval e0)
+        v2 <- withBinding x y1 (eval e0)
+        return $ ListVal (v1:[v2])
+
+        --(withBinding x y1 (withBinding x y (eval e0)))  --(eval exp)
       _ -> abort (EBadArg "Expression does not evalate to a list") -- Say where
 
         -- withBinding :: VName -> Value -> Comp a -> Comp a
