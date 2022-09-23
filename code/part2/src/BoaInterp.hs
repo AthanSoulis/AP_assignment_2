@@ -115,7 +115,8 @@ toString FalseVal = " False"
 toString (IntVal n) = " " ++ show n
 toString (StringVal s) = " " ++ s
 toString (ListVal []) = " []"
-toString (ListVal xs) = " [" ++ tail (tail $ concatMap (("," ++) . toString) xs) ++ "]"
+toString (ListVal xs) = " [" ++ tail 
+  (tail $ concatMap (("," ++) . toString) xs) ++ "]"
 
 -- Main functions of interpreter
 eval :: Exp -> Comp Value
@@ -127,7 +128,9 @@ eval (Oper o e1 e2) = do
   case operate o v1 v2 of
     (Left e)  -> abort (EBadArg e)
     (Right v) -> return v
-eval (Not e) = do v <- eval e; if truthy v then return FalseVal else return TrueVal
+eval (Not e) = do 
+  v <- eval e; 
+  if truthy v then return FalseVal else return TrueVal
 
 eval (Call f x) = do
   xs <- eval (List x);
@@ -136,13 +139,16 @@ eval (Call f x) = do
     extract _ = [] -- this should never happen
 
 --this is a unnecessarily slowed down bc of the reverse at the end
---this deficiency reocurs  with later ListVal types, specifically in the CCFor evaluation
+--this deficiency reocurs  with later ListVal types, 
+--specifically in the CCFor evaluation
 --there's certainly a way to get rid of this using built in monad functions
 eval (List []) = return $ ListVal []
 eval (List (e:es)) = evalListAcc (e:es) (ListVal []) where
   --accumulates the value list that is later encapsulated in ListVal
-  --upon reaching the end, the list can be "returned" but the accumulated value is in reverse order
-  --the issue was that i couldnt figure out how to do (x:v) instead of (v:x) --maybe add an empty check
+  --upon reaching the end, the list can be "returned" 
+  --but the accumulated value is in reverse order
+  --the issue was that i couldnt figure out 
+  --how to do (x:v) instead of (v:x) --maybe add an empty check
   --since you cant do []:x for example.
   evalListAcc [] (ListVal x) = return (ListVal (reverse x))
   evalListAcc (e:es) (ListVal x) = do
@@ -163,14 +169,15 @@ eval (Compr e0 ccs) = case head ccs of
       (ListVal (y:ys)) -> acc (y:ys) (ListVal []) where
         --accumulates the value list that is later encapsulated in ListVal
         --as mentioned above, z has to be reversed
-        --again, probably much better solution possible with built in monad functions like mapM etc.
+        --again, probably much better solution possible 
+        --with built in monad functions like mapM etc.
         acc [] (ListVal z) = return (ListVal (reverse z))
         acc (y:ys) (ListVal z) = do
           v <- withBinding x y (eval e0);
           acc ys (ListVal (v:z))
         acc _ _ = return NoneVal
 
-      _ -> abort (EBadArg "Expression does not evaluate to a list") -- Say where
+      _ -> abort (EBadArg "Expression does not evaluate to a list")
 
   CCIf exp    -> do
     e <- eval exp;
