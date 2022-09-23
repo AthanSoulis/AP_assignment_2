@@ -32,9 +32,6 @@ instance Functor Comp where
 instance Applicative Comp where
   pure = return; (<*>) = ap
 
-
-
-
 -- Operations of the monad
 abort :: RunError -> Comp a
 abort re = Comp (\_ -> (Left re, mempty))
@@ -54,13 +51,36 @@ output s = Comp (\_ -> (Right (), [s]))
 
 -- Helper functions for interpreter
 truthy :: Value -> Bool
-truthy = undefined
+truthy NoneVal        = False
+truthy FalseVal       = False
+truthy (IntVal 0)     = False
+truthy (StringVal "") = False
+truthy (ListVal [])   = False
+truthy _              = True
 
 operate :: Op -> Value -> Value -> Either String Value
-operate = undefined
+operate Plus    (IntVal v1) (IntVal v2)       = Right (IntVal (v1 + v2))
+operate Minus   (IntVal v1) (IntVal v2)       = Right (IntVal (v1 - v2))
+operate Times   (IntVal v1) (IntVal v2)       = Right (IntVal (v1 * v2))
+operate Div     (IntVal v1) (IntVal v2)       = if v2 /= 0 then Right (IntVal (v1 `div` v2)) 
+  else Left $ "Attempted division by zero in " ++ show v1 ++ " `div` " ++ show v2
+operate Mod     (IntVal v1) (IntVal v2)       = if v2 /= 0 then Right (IntVal (v1 `mod` v2))
+  else Left $ "Attempted division by zero in " ++ show v1 ++ " `mod` " ++ show v2
+operate Eq      (IntVal v1) (IntVal v2)       = Right (if v1 == v2 then TrueVal else FalseVal)
+operate Eq      (StringVal v1) (StringVal v2) = Right (if v1 == v2 then TrueVal else FalseVal)
+operate Eq      (ListVal v1) (ListVal v2)     = Right (if v1 == v2 then TrueVal else FalseVal)
+operate Eq       v1 v2                        = Right (if v1 == v2 then TrueVal else FalseVal)
+operate Less    (IntVal v1) (IntVal v2)       = Right (if v1 < v2 then TrueVal else FalseVal)
+operate Greater (IntVal v1) (IntVal v2)       = Right (if v1 > v2 then TrueVal else FalseVal)
+operate In       _ (ListVal [])               = Right FalseVal
+operate In       v1 (ListVal (v:vs))          = case operate Eq v1 v of 
+  (Left _) -> Right FalseVal
+  (Right x) -> if x == TrueVal then Right TrueVal else operate In v1 (ListVal vs)
+operate o v1 v2 = Left $ "Operator " ++ show o ++ " is applied to inappropriate arguments " ++ show v1 ++ ", " ++ show v2
 
 apply :: FName -> [Value] -> Comp Value
 apply = undefined
+--apply f (v:vs) = let x = NoneVal in Comp (\env -> (Right x, mempty))
 
 -- Main functions of interpreter
 eval :: Exp -> Comp Value
