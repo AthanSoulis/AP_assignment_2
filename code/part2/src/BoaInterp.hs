@@ -79,7 +79,7 @@ operate In       v1 (ListVal (v:vs))          = case operate Eq v1 v of
 operate o v1 v2 = Left $ "Operator " ++ show o ++ " is applied to inappropriate arguments " ++ show v1 ++ ", " ++ show v2
 
 --NOTE: COULD BE WAY CLEANER
-apply :: FName -> [Value] -> Comp Value --EBadArg
+apply :: FName -> [Value] -> Comp Value
 apply "range" [n2] = apply "range" [IntVal 0, n2, IntVal 1]
 apply "range" [n1, n2] = apply "range" [n1, n2, IntVal 1]
 apply "range" [IntVal n1, IntVal n2, IntVal n3]
@@ -89,8 +89,27 @@ apply "range" [IntVal n1, IntVal n2, IntVal n3]
   | n3 < 0  = if n1 <= n2 then Comp (\_ -> (Right $ ListVal [], mempty)) else 
     Comp (\_ -> (Right $ ListVal $ map IntVal (takeWhile (> n2) (iterate (+ n3) n1)), mempty))
 apply "range" x = Comp (\_ -> (Left $ EBadArg (show x), mempty))
+
+apply "print" x = Comp (\_ -> (Right NoneVal, out)) where
+  out = if x /= [] then [tail $ foldl (++) "" (map toString x)] else [""]
+
 apply x _ = Comp (\_ -> (Left (EBadFun x), mempty))
---apply f (v:vs) = let x = NoneVal in Comp (\env -> (Right x, mempty))
+
+--NOTE: LISTVAL NOT WORKING
+toString :: Value -> String
+toString NoneVal = " None"
+toString TrueVal = " True"
+toString FalseVal = " False"
+toString (IntVal n) = " " ++ show n
+toString (StringVal s) = " " ++ s
+toString (ListVal []) = " []"
+toString (ListVal (x:xs)) = undefined
+
+  --if x /= [] then foldl (++) "" (map toString x) else "[]"
+--  if x /= [] then " [" ++ foldl (++) "" (map toString x) ++ "]" else "[]"
+
+-- output' :: String -> Comp Value
+-- output' s = Comp (\_ -> (Right NoneVal, [s]))
 
 -- Main functions of interpreter
 eval :: Exp -> Comp Value
