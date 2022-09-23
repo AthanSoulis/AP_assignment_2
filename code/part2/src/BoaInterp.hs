@@ -79,10 +79,11 @@ operate In       v1 (ListVal (v:vs))          = case operate Eq v1 v of
   (Right x) -> if x == TrueVal then Right TrueVal else operate In v1 (ListVal vs)
 operate o v1 v2 = Left $ "Operator " ++ show o ++ " is applied to inappropriate arguments " ++ show v1 ++ ", " ++ show v2
 
---NOTE: RANGE COULD BE WAY CLEANER
+
 apply :: FName -> [Value] -> Comp Value
 apply "range" [n2] = apply "range" [IntVal 0, n2, IntVal 1]
 apply "range" [n1, n2] = apply "range" [n1, n2, IntVal 1]
+--lots of duplicate code, this can surely be done in a neater way
 apply "range" [IntVal n1, IntVal n2, IntVal n3]
   | n3 == 0 = abort $ EBadArg (show n3)
   | n3 > 0  = if n1 >= n2 then return $ ListVal [] else 
@@ -94,13 +95,14 @@ apply "range" x = abort $ EBadArg (show x)
 -- doesnt work bc output results in comp () and we want comp value
 -- apply "print" x = output out where
 --   out = if x /= [] then tail $ concatMap toString x else ""
-
 apply "print" x = Comp (\_ -> (Right NoneVal, out)) where
   out = if x /= [] then [tail $ concatMap toString x] else [""]
 
 apply x _ = abort (EBadFun x)
 
-
+--basic string conversion
+--every convertet string starts with a whitespace to seperate it in the above list
+--the leading whitespace is ignored by using tail
 toString :: Value -> String
 toString NoneVal = " None"
 toString TrueVal = " True"
@@ -128,17 +130,23 @@ eval (Call f x) = do
     extract (ListVal x) = x 
     extract _ = [] -- this should never happen
 
---this is a bit slow bc of the reverse at the end
---the issue was that i couldnt figure out how to do (x:v) instead of (v:x)
---since you cant do []:x for example.
+--this is a unnecessarily slowed down bc of the reverse at the end
+--this deficiency reocurs  with later ListVal types, specifically in the CCFor evaluation
+--there's certainly a way to get rid of this using built in monad functions
 eval (List []) = return $ ListVal []
 eval (List (e:es)) = evalListAcc (e:es) (ListVal []) where
+  --accumulates the value list that is later encapsulated in ListVal
+  --upon reaching the end, the list can be "returned" but the accumulated value is in reverse order
+  --the issue was that i couldnt figure out how to do (x:v) instead of (v:x) --maybe add an empty check
+  --since you cant do []:x for example.
   evalListAcc [] (ListVal x) = return (ListVal (reverse x))
   evalListAcc (e:es) (ListVal x) = do
     v <- eval e;
     evalListAcc es (ListVal (v:x))
   evalListAcc _ _ = return NoneVal
 
+--currently only implements the case of with at most one cc
+--for concrete implementation ideas see the report
 eval (Compr e0 []) = do 
   e <- eval e0;
   return $ ListVal [e] 
@@ -147,7 +155,10 @@ eval (Compr e0 ccs) = case head ccs of
     e <- eval exp; 
     case e of 
       (ListVal []) -> return $ ListVal []
-      (ListVal (y:ys)) -> acc (y:ys) (ListVal []) where 
+      (ListVal (y:ys)) -> acc (y:ys) (ListVal []) where
+        --accumulates the value list that is later encapsulated in ListVal
+        --as mentioned above, z has to be reversed
+        --again, probably much better solution possible with built in monad functions like mapM etc.
         acc [] (ListVal z) = return (ListVal (reverse z))
         acc (y:ys) (ListVal z) = do
           v <- withBinding x y (eval e0);
@@ -156,24 +167,12 @@ eval (Compr e0 ccs) = case head ccs of
 
       _ -> abort (EBadArg "Expression does not evaluate to a list") -- Say where
 
-        -- v1 <- withBinding x y (eval e0)
-        -- v2 <- withBinding x y1 (eval e0)
-        -- return $ ListVal (v1:[v2])
-
-        --(withBinding x y1 (withBinding x y (eval e0)))  --(eval exp)
-
-        -- withBinding :: VName -> Value -> Comp a -> Comp a
-        -- withBinding x v m = Comp (\env -> case runComp m ((x, v):env) of
-        --               (Left e, out)  -> (Left e, out)
-        --               (Right a, out) -> (Right a, out))
-
   CCIf exp    -> do
     e <- eval exp;
     if truthy e then do 
       arg <- eval e0
       return (ListVal [arg]) 
     else return $ ListVal []
---eval _ = return NoneVal
  
 
 exec :: Program -> Comp ()
