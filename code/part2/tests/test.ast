@@ -1,0 +1,20 @@
+[SDef "squares"
+      (Compr (Oper Times (Var "x") (Var "x"))
+             [CCFor "x" (Call "range" [Const (IntVal 10)])]),
+ SExp (Call "print" [(Var "squares")]),
+ SDef "quads"
+      (Compr (Oper Times (Var "y") (Var "y"))
+             [CCFor "y" (Var "squares")]),
+ SExp (Call "print" [(Var "quads")]),
+ SExp (Call "print" [(Const (ListVal [NoneVal]))]),
+ SDef "empty" (Const (ListVal [NoneVal])),
+ SDef "intCompr"
+       (Compr (Const (IntVal 100))
+              [CCFor "y" (Var "empty")]),
+ SExp (Call "print" [(Var "intCompr")]),
+
+ 
+  SExp (Call "print" [Const (StringVal "Boom !"),
+                     (Compr (Oper Times (Var "y") (Var "y"))
+                     [CCFor "y" (Var "empty")])])
+]

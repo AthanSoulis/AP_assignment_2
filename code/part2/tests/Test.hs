@@ -22,8 +22,8 @@ tests = testGroup "Stubby tests"
                                         Const (ListVal [TrueVal, ListVal []]), Const (IntVal (-1))])]
       @?= (["42 foo [True, []] -1"], Nothing),
    testCase "execute test.ast" $
-     do pgm <- read <$> readFile "examples/test.ast"
-        out <- readFile "examples/test.out"
+     do pgm <- read <$> readFile "test/test.ast"
+        out <- readFile "test/test.out"
         execute pgm @?= (lines out, Nothing),
    testCase "execute misc.ast from handout" $
      do pgm <- read <$> readFile "examples/misc.ast"
