@@ -169,7 +169,16 @@ eval (Compr e0 ccs) = case head ccs of
  
 
 exec :: Program -> Comp ()
-exec = undefined
+exec stmts = case head stmts of
+    (SDef v exp) -> do
+      ev <- eval exp;
+      r <- withBinding v ev $ exec $ tail stmts
+      return r
+    (SExp exp) -> do 
+      eval exp; 
+      r <- exec $ tail stmts;
+      return r
+
 
 execute :: Program -> ([String], Maybe RunError)
 execute = undefined
