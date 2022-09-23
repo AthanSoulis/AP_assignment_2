@@ -120,6 +120,7 @@ eval (Call f x) = do
   xs <- eval (List x);
   apply f (extract xs) where
     extract (ListVal x) = x 
+    extract _ = [] -- this should never happen
 
 --this is a bit slow bc of the reverse at the end
 --the issue was that i couldnt figure out how to do (x:v) instead of (v:x)
@@ -132,10 +133,28 @@ eval (List (e:es)) = evalListAcc (e:es) (ListVal []) where
     evalListAcc es (ListVal (v:x))
   evalListAcc _ _ = return NoneVal
 
+eval (Compr e0 []) = do 
+  e <- eval e0;
+  return $ ListVal [e] 
+eval (Compr e0 ccs) = case head ccs of 
+  CCFor x exp -> do
+    e <- eval exp; 
+    case e of 
+      (ListVal xs) -> withBinding x (head xs) (return NoneVal)
+      _ -> abort (EBadArg "Expression does not evalate to a list") -- Say where
 
-eval (Compr e0 []) = return TrueVal
-eval (Compr e0 (cc:ccs)) = return TrueVal
-eval _ = return NoneVal
+        -- withBinding :: VName -> Value -> Comp a -> Comp a
+        -- withBinding x v m = Comp (\env -> case runComp m ((x, v):env) of
+        --               (Left e, out)  -> (Left e, out)
+        --               (Right a, out) -> (Right a, out))
+
+  CCIf exp    -> do
+    e <- eval exp;
+    if truthy e then do 
+      arg <- eval e0
+      return (ListVal [arg]) 
+    else return $ ListVal []
+--eval _ = return NoneVal
  
 
 exec :: Program -> Comp ()
