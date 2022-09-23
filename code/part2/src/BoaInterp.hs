@@ -47,6 +47,7 @@ withBinding x v m = Comp (\env -> case runComp m ((x, v):env) of
                       (Right a, out) -> (Right a, out))
 
 output :: String -> Comp ()
+output [] = Comp (\_ -> (Right (), []))
 output s = Comp (\_ -> (Right (), [s]))
 
 -- Helper functions for interpreter
@@ -169,16 +170,17 @@ eval (Compr e0 ccs) = case head ccs of
  
 
 exec :: Program -> Comp ()
-exec stmts = case head stmts of
+exec stmts = if null stmts then output []
+  else case head stmts of
     (SDef v exp) -> do
       ev <- eval exp;
-      r <- withBinding v ev $ exec $ tail stmts
-      return r
+      withBinding v ev $ exec $ tail stmts
     (SExp exp) -> do 
       eval exp; 
-      r <- exec $ tail stmts;
-      return r
-
+      exec $ tail stmts;
 
 execute :: Program -> ([String], Maybe RunError)
-execute = undefined
+execute p = case runComp (exec p) [] of 
+      (Right _ , out) -> (out, Nothing)
+      (Left err, out) -> (out, Just err)  
+  
