@@ -1,0 +1,9 @@
+[SDef "squares"
+      (Compr (Oper Times (Var "x") (Var "x"))
+             [CCFor "x" (Call "range" [Const (IntVal 10)])]),
+ SDef "quads"
+      (Compr (Oper Times (Var "y") (Var "y"))
+             [CCFor "y" (Var "squares")]),
+ SExp (Call "print" [(Var "quads")])
+
+]
