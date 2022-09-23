@@ -47,6 +47,7 @@ withBinding x v m = Comp (\env -> case runComp m ((x, v):env) of
                       (Right a, out) -> (Right a, out))
 
 output :: String -> Comp ()
+output [] = Comp (\_ -> (Right (), []))
 output s = Comp (\_ -> (Right (), [s]))
 
 -- Helper functions for interpreter
@@ -108,12 +109,13 @@ apply "range" x = abort $ EBadArg (show x)
 -- doesnt work bc output results in comp () and we want comp value
 -- apply "print" x = output out where
 --   out = if x /= [] then tail $ concatMap toString x else ""
--- apply "print" x = Comp (\_ -> (Right NoneVal, out)) where
---   out = if x /= [] then  else [""]
-  
-apply "print" x = do 
-  output (tail $ concatMap toString x)
-  return NoneVal
+apply "print" x = Comp (\_ -> (Right NoneVal, out)) where
+  out = if x /= [] then [tail $ concatMap toString x] else [""]
+
+
+-- apply "print" x = do 
+--   output (tail $ concatMap toString x)
+--   return NoneVal
 --  where
 --   out = if x /= [] then [tail $ concatMap toString x] else []
 
